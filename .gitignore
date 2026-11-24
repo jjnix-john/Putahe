@@ -31,7 +31,18 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
 .env*.local
+!.env.example
+
+# Supabase CLI temp & local state
+supabase/.temp/
+supabase/.branches/
+
+# Local AI / editor folders
+.claude/
+putahe-plan.md
 
 # typescript
 *.tsbuildinfo
