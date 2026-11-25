@@ -11,6 +11,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { compressImage, identifyDish } from "@/lib/snap";
 import { useRecipes } from "@/stores/RecipeContext";
+import { CompanionReaction } from "@/components/CompanionReaction";
+import { SystemBackground } from "@/components/SystemBackground";
 import type { SnapResult } from "@/types/index";
 
 type SnapState =
@@ -122,38 +124,40 @@ export default function SnapScreen() {
 
   if (state.status === "idle") {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-8 gap-y-4">
-        <View className="w-20 h-20 rounded-full bg-[#EDF5EC] items-center justify-center mb-1">
-          <Ionicons name="camera-outline" size={38} color="#646F58" />
-        </View>
-        <Text className="text-xl font-bold text-khaki">Snap a Dish</Text>
-        <Text className="text-olive-light text-sm text-center">
-          Take or choose a photo of a dish and we&apos;ll identify it and show
-          you the recipe.
-        </Text>
+      <SystemBackground>
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="w-full bg-white/95 border border-[#E2EAE0] rounded-3xl p-6 items-center">
+            <CompanionReaction
+              mood="curious"
+              size={125}
+              title="Snap a Dish"
+              subtitle="Take or choose a photo of any meal and your companion will inspect and reverse-engineer the recipe!"
+            />
 
-        <View className="w-full gap-y-3 mt-4">
-          <Pressable
-            className="bg-malachite rounded-xl py-4 flex-row items-center justify-center gap-x-2 active:opacity-80"
-            onPress={handleTakePhoto}
-          >
-            <Ionicons name="camera" size={20} color="#504B3A" />
-            <Text className="text-khaki font-bold text-base">
-              Take a Photo
-            </Text>
-          </Pressable>
+            <View className="w-full gap-y-3 mt-5">
+              <Pressable
+                className="bg-malachite rounded-xl py-4 flex-row items-center justify-center gap-x-2 active:opacity-80"
+                onPress={handleTakePhoto}
+              >
+                <Ionicons name="camera" size={20} color="#504B3A" />
+                <Text className="text-khaki font-bold text-base">
+                  Take a Photo
+                </Text>
+              </Pressable>
 
-          <Pressable
-            className="border border-olive-light rounded-xl py-4 flex-row items-center justify-center gap-x-2 active:opacity-70"
-            onPress={handlePickImage}
-          >
-            <Ionicons name="images-outline" size={20} color="#646F58" />
-            <Text className="text-olive font-bold text-base">
-              Choose from Gallery
-            </Text>
-          </Pressable>
+              <Pressable
+                className="bg-white border border-olive-light rounded-xl py-4 flex-row items-center justify-center gap-x-2 active:opacity-70"
+                onPress={handlePickImage}
+              >
+                <Ionicons name="images-outline" size={20} color="#646F58" />
+                <Text className="text-olive font-bold text-base">
+                  Choose from Gallery
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
-      </View>
+      </SystemBackground>
     );
   }
 
@@ -161,10 +165,23 @@ export default function SnapScreen() {
 
   if (state.status === "loading") {
     return (
-      <View className="flex-1 bg-white items-center justify-center gap-y-4">
-        <ActivityIndicator size="large" color="#57E165" />
-        <Text className="text-olive-light text-sm">Identifying dish…</Text>
-      </View>
+      <SystemBackground>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-full bg-white/95 border border-[#E2EAE0] rounded-3xl p-6 items-center">
+            <CompanionReaction
+              mood="discovering"
+              size={130}
+              title="Inspecting your dish…"
+              subtitle="Smelling the spices and figuring out the secret ingredients!"
+            />
+            <ActivityIndicator
+              size="large"
+              color="#57E165"
+              style={{ marginTop: 14 }}
+            />
+          </View>
+        </View>
+      </SystemBackground>
     );
   }
 
@@ -172,23 +189,24 @@ export default function SnapScreen() {
 
   if (state.status === "not_configured") {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-8 gap-y-3">
-        <Ionicons name="settings-outline" size={40} color="#646F58" />
-        <Text className="text-lg font-bold text-khaki">
-          Service not configured
-        </Text>
-        <Text className="text-olive-light text-sm text-center">
-          Add your Supabase credentials to{" "}
-          <Text className="font-mono text-khaki">.env.local</Text> to enable
-          dish identification.
-        </Text>
-        <Pressable
-          className="mt-4 bg-[#EDF5EC] rounded-xl px-6 py-3 active:opacity-70"
-          onPress={handleReset}
-        >
-          <Text className="text-olive font-bold">Go Back</Text>
-        </Pressable>
-      </View>
+      <SystemBackground>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-full bg-white/95 border border-[#E2EAE0] rounded-3xl p-6 items-center">
+            <CompanionReaction
+              mood="curious"
+              size={120}
+              title="AI Vision not configured yet"
+              subtitle="Add your Supabase credentials to .env.local to enable dish identification."
+            />
+            <Pressable
+              className="mt-5 bg-malachite rounded-xl px-6 py-3 active:opacity-80"
+              onPress={handleReset}
+            >
+              <Text className="text-khaki font-bold">Go Back</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SystemBackground>
     );
   }
 
@@ -196,21 +214,24 @@ export default function SnapScreen() {
 
   if (state.status === "not_food") {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-8 gap-y-3">
-        <Ionicons name="help-circle-outline" size={44} color="#646F58" />
-        <Text className="text-lg font-bold text-khaki">
-          That doesn&apos;t look like food
-        </Text>
-        <Text className="text-olive-light text-sm text-center">
-          Try a clearer photo of a dish or meal.
-        </Text>
-        <Pressable
-          className="mt-4 bg-malachite rounded-xl px-6 py-3 active:opacity-80"
-          onPress={handleReset}
-        >
-          <Text className="text-khaki font-bold">Try Again</Text>
-        </Pressable>
-      </View>
+      <SystemBackground>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-full bg-white/95 border border-[#E2EAE0] rounded-3xl p-6 items-center">
+            <CompanionReaction
+              mood="sad"
+              size={125}
+              title="That doesn't look like food!"
+              subtitle="Your companion couldn't spot a dish. Try a clearer photo of a meal."
+            />
+            <Pressable
+              className="mt-5 bg-malachite rounded-xl px-6 py-3 active:opacity-80"
+              onPress={handleReset}
+            >
+              <Text className="text-khaki font-bold">Try Again</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SystemBackground>
     );
   }
 
@@ -218,21 +239,24 @@ export default function SnapScreen() {
 
   if (state.status === "error") {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-8 gap-y-3">
-        <Ionicons name="warning-outline" size={42} color="#646F58" />
-        <Text className="text-lg font-bold text-khaki">
-          Something went wrong
-        </Text>
-        <Text className="text-olive-light text-sm text-center">
-          {state.message}
-        </Text>
-        <Pressable
-          className="mt-4 bg-malachite rounded-xl px-6 py-3 active:opacity-80"
-          onPress={handleReset}
-        >
-          <Text className="text-khaki font-bold">Try Again</Text>
-        </Pressable>
-      </View>
+      <SystemBackground>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-full bg-white/95 border border-[#E2EAE0] rounded-3xl p-6 items-center">
+            <CompanionReaction
+              mood="sad"
+              size={125}
+              title="Something went wrong"
+              subtitle={state.message}
+            />
+            <Pressable
+              className="mt-5 bg-malachite rounded-xl px-6 py-3 active:opacity-80"
+              onPress={handleReset}
+            >
+              <Text className="text-khaki font-bold">Try Again</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SystemBackground>
     );
   }
 
@@ -253,15 +277,26 @@ export default function SnapScreen() {
       />
 
       <View className="px-4 pt-4 pb-10">
+        {/* Companion Amazed / Jumping Reaction Banner */}
+        <CompanionReaction
+          mood={savedSnap ? "jumping" : "amazed"}
+          size={68}
+          compact
+          title={
+            savedSnap
+              ? "Added to your Cookbook!"
+              : `Aha! It's ${result.dish_name}!`
+          }
+          subtitle={
+            result.confidence_note ||
+            "Here are the ingredients and steps to cook it at home."
+          }
+        />
+
         {/* Dish name */}
         <Text className="text-2xl font-bold text-khaki">
           {result.dish_name}
         </Text>
-        {result.confidence_note ? (
-          <Text className="text-olive-light text-sm mt-1">
-            {result.confidence_note}
-          </Text>
-        ) : null}
 
         {/* Ingredients */}
         <Text className="text-lg font-bold text-khaki mt-6 mb-3">

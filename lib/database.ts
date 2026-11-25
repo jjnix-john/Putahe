@@ -120,7 +120,10 @@ const memoryDb = {
       if (existing) {
         existing.is_active = existing.is_active === 1 ? 0 : 1;
       }
-    } else if (sql.startsWith("INSERT INTO DB_META")) {
+    } else if (
+      sql.startsWith("INSERT INTO DB_META") ||
+      sql.startsWith("INSERT OR REPLACE INTO DB_META")
+    ) {
       const [key, value] = params as [string, string];
       _memMeta.set(key, value);
     }

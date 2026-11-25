@@ -1,5 +1,18 @@
-import React, { createContext, useContext, useEffect, useReducer } from "react";
-import { searchMeals, getMealById, recipeToRow, rowToRecipe } from "@/lib/mealdb";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+} from "react";
+import {
+  getInitialRecipeCatalog,
+  getMealById,
+  getMealsByCategory,
+  recipeToRow,
+  rowToRecipe,
+  searchMeals,
+} from "@/lib/mealdb";
 import { getDb } from "@/lib/database";
 import type {
   CachedRecipeRow,
@@ -9,13 +22,29 @@ import type {
   RecipeState,
 } from "@/types/index";
 
+const DEFAULT_CATEGORIES = [
+  "All",
+  "Filipino",
+  "Chicken",
+  "Beef",
+  "Seafood",
+  "Pasta",
+  "Vegetarian",
+  "Pork",
+  "Dessert",
+];
+
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 
 const initialState: RecipeState = {
   results: [],
+  catalog: [],
+  categories: DEFAULT_CATEGORIES,
+  selectedCategory: "All",
   selectedRecipe: null,
   savedRecipes: [],
   loading: false,
+  catalogLoading: true,
   error: null,
 };
 
@@ -23,14 +52,36 @@ function recipeReducer(state: RecipeState, action: RecipeAction): RecipeState {
   switch (action.type) {
     case "SEARCH":
       return { ...state, results: action.results, loading: false, error: null };
+    case "SET_CATALOG":
+      return {
+        ...state,
+        catalog: action.catalog,
+        categories: action.categories,
+        catalogLoading: false,
+        error: null,
+      };
+    case "SET_CATEGORY":
+      return { ...state, selectedCategory: action.category };
     case "SELECT_RECIPE":
-      return { ...state, selectedRecipe: action.recipe, loading: false, error: null };
+      return {
+        ...state,
+        selectedRecipe: action.recipe,
+        loading: false,
+        error: null,
+      };
     case "SET_SAVED":
       return { ...state, savedRecipes: action.recipes };
     case "SET_LOADING":
       return { ...state, loading: action.loading };
+    case "SET_CATALOG_LOADING":
+      return { ...state, catalogLoading: action.loading };
     case "SET_ERROR":
-      return { ...state, error: action.error, loading: false };
+      return {
+        ...state,
+        error: action.error,
+        loading: false,
+        catalogLoading: false,
+      };
     case "CLEAR_RESULTS":
       return { ...state, results: [], error: null };
     default:
@@ -45,6 +96,49 @@ const RecipeContext = createContext<RecipeContextValue | undefined>(undefined);
 export function RecipeProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(recipeReducer, initialState);
 
+  const loadCatalog = useCallback(async () => {
+    dispatch({ type: "SET_CATALOG_LOADING", loading: true });
+    try {
+      const recipes = await getInitialRecipeCatalog();
+      const db = await getDb();
+      for (const recipe of recipes.slice(0, 80)) {
+        const row = recipeToRow(recipe);
+        await db.runAsync(
+          `INSERT OR REPLACE INTO cached_recipes
+           (id, title, category, area, instructions, thumbnail, ingredients, source, cached_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            row.id,
+            row.title,
+            row.category,
+            row.area,
+            row.instructions,
+            row.thumbnail,
+            row.ingredients,
+            row.source,
+            row.cached_at,
+          ]
+        );
+      }
+
+      const dynamicCats = new Set<string>(DEFAULT_CATEGORIES);
+      for (const r of recipes) {
+        if (r.category) dynamicCats.add(r.category);
+      }
+
+      dispatch({
+        type: "SET_CATALOG",
+        catalog: recipes,
+        categories: [...dynamicCats].slice(0, 12),
+      });
+    } catch (e: unknown) {
+      dispatch({
+        type: "SET_ERROR",
+        error: e instanceof Error ? e.message : "Failed to load recipe catalog.",
+      });
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -57,12 +151,46 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to load saved recipes:", e);
       }
     })();
-  }, []);
 
-  /**
-   * Search TheMealDB by keyword. Results are written to SQLite cache.
-   */
-  async function search(query: string): Promise<void> {
+    loadCatalog();
+  }, [loadCatalog]);
+
+  const selectCategory = useCallback(
+    async (category: string): Promise<void> => {
+      dispatch({ type: "SET_CATEGORY", category });
+      if (category === "All") return;
+
+      // Check if we already have enough items for this category in catalog
+      const matchingInCatalog = state.catalog.filter(
+        (r) =>
+          r.category.toLowerCase() === category.toLowerCase() ||
+          r.area.toLowerCase() === category.toLowerCase() ||
+          (r.tags ?? []).some((t) => t.toLowerCase() === category.toLowerCase())
+      );
+
+      if (matchingInCatalog.length >= 6) return;
+
+      try {
+        const extra = await getMealsByCategory(category);
+        if (extra.length > 0) {
+          const map = new Map<string, Recipe>();
+          for (const r of [...state.catalog, ...extra]) {
+            map.set(r.id, r);
+          }
+          dispatch({
+            type: "SET_CATALOG",
+            catalog: [...map.values()],
+            categories: state.categories,
+          });
+        }
+      } catch {
+        // non-fatal
+      }
+    },
+    [state.catalog, state.categories]
+  );
+
+  const search = useCallback(async (query: string): Promise<void> => {
     if (!query.trim()) {
       dispatch({ type: "CLEAR_RESULTS" });
       return;
@@ -70,7 +198,6 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "SET_LOADING", loading: true });
     try {
       const recipes = await searchMeals(query);
-      // Cache each result
       const db = await getDb();
       for (const recipe of recipes) {
         const row = recipeToRow(recipe);
@@ -79,9 +206,15 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
            (id, title, category, area, instructions, thumbnail, ingredients, source, cached_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            row.id, row.title, row.category, row.area,
-            row.instructions, row.thumbnail, row.ingredients,
-            row.source, row.cached_at,
+            row.id,
+            row.title,
+            row.category,
+            row.area,
+            row.instructions,
+            row.thumbnail,
+            row.ingredients,
+            row.source,
+            row.cached_at,
           ]
         );
       }
@@ -92,53 +225,65 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
         error: e instanceof Error ? e.message : "Search failed.",
       });
     }
-  }
+  }, []);
 
-  /**
-   * Load a recipe by ID. Checks SQLite cache first; falls back to API.
-   */
-  async function loadRecipe(id: string): Promise<void> {
-    dispatch({ type: "SET_LOADING", loading: true });
-    try {
-      // 1. Try cache
-      const db = await getDb();
-      const cached = await db.getFirstAsync<{
-        id: string; title: string; category: string | null;
-        area: string | null; instructions: string | null;
-        thumbnail: string | null; ingredients: string | null;
-        source: string | null; cached_at: number;
-      }>("SELECT * FROM cached_recipes WHERE id = ?", [id]);
+  const loadRecipe = useCallback(
+    async (id: string): Promise<void> => {
+      dispatch({ type: "SET_LOADING", loading: true });
+      try {
+        // Check memory catalog first for rich metadata
+        const inCatalog =
+          state.catalog.find((r) => r.id === id) ??
+          state.results.find((r) => r.id === id) ??
+          state.savedRecipes.find((r) => r.id === id);
+        if (inCatalog && inCatalog.instructions) {
+          dispatch({ type: "SELECT_RECIPE", recipe: inCatalog });
+          return;
+        }
 
-      if (cached) {
-        dispatch({ type: "SELECT_RECIPE", recipe: rowToRecipe(cached) });
-        return;
+        const db = await getDb();
+        const cached = await db.getFirstAsync<CachedRecipeRow>(
+          "SELECT * FROM cached_recipes WHERE id = ?",
+          [id]
+        );
+
+        if (cached) {
+          dispatch({ type: "SELECT_RECIPE", recipe: rowToRecipe(cached) });
+          return;
+        }
+
+        const recipe = await getMealById(id);
+        if (!recipe) {
+          dispatch({ type: "SET_ERROR", error: "Recipe not found." });
+          return;
+        }
+        const row = recipeToRow(recipe);
+        await db.runAsync(
+          `INSERT OR REPLACE INTO cached_recipes
+           (id, title, category, area, instructions, thumbnail, ingredients, source, cached_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            row.id,
+            row.title,
+            row.category,
+            row.area,
+            row.instructions,
+            row.thumbnail,
+            row.ingredients,
+            row.source,
+            row.cached_at,
+          ]
+        );
+        dispatch({ type: "SELECT_RECIPE", recipe });
+      } catch (e: unknown) {
+        dispatch({
+          type: "SET_ERROR",
+          error: e instanceof Error ? e.message : "Failed to load recipe.",
+        });
       }
-
-      // 2. Fetch from API and cache
-      const recipe = await getMealById(id);
-      if (!recipe) {
-        dispatch({ type: "SET_ERROR", error: "Recipe not found." });
-        return;
-      }
-      const row = recipeToRow(recipe);
-      await db.runAsync(
-        `INSERT OR REPLACE INTO cached_recipes
-         (id, title, category, area, instructions, thumbnail, ingredients, source, cached_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          row.id, row.title, row.category, row.area,
-          row.instructions, row.thumbnail, row.ingredients,
-          row.source, row.cached_at,
-        ]
-      );
-      dispatch({ type: "SELECT_RECIPE", recipe });
-    } catch (e: unknown) {
-      dispatch({
-        type: "SET_ERROR",
-        error: e instanceof Error ? e.message : "Failed to load recipe.",
-      });
-    }
-  }
+    },
+    [state.catalog, state.results, state.savedRecipes]
+  );
 
   async function saveRecipe(recipe: Recipe): Promise<void> {
     const db = await getDb();
@@ -195,13 +340,15 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
     return state.savedRecipes.some((r) => r.id === id);
   }
 
-  function clearResults(): void {
+  const clearResults = useCallback((): void => {
     dispatch({ type: "CLEAR_RESULTS" });
-  }
+  }, []);
 
   const value: RecipeContextValue = {
     ...state,
     search,
+    loadCatalog,
+    selectCategory,
     loadRecipe,
     saveRecipe,
     removeSavedRecipe,

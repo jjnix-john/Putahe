@@ -4,14 +4,21 @@ import type { Session, User } from "@supabase/supabase-js";
 
 export type { Session, User };
 
+export interface CookingCompanion {
+  name: string;
+  iconId: string;
+}
+
 export interface AuthState {
   session: Session | null;
   user: User | null;
+  companion: CookingCompanion | null;
   loading: boolean;
 }
 
 export type AuthAction =
   | { type: "SET_SESSION"; session: Session | null }
+  | { type: "SET_COMPANION"; companion: CookingCompanion | null }
   | { type: "SET_LOADING"; loading: boolean };
 
 export interface AuthContextValue extends AuthState {
@@ -22,6 +29,7 @@ export interface AuthContextValue extends AuthState {
     username?: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  saveCompanion: (companion: CookingCompanion) => Promise<void>;
 }
 
 // ─── Database ─────────────────────────────────────────────────────────────────
@@ -71,28 +79,44 @@ export interface Recipe {
   ingredients: Ingredient[];
   source: string;
   youtubeUrl?: string;
+  prepTimeMinutes?: number;
+  cookTimeMinutes?: number;
+  servings?: number;
+  difficulty?: string;
+  rating?: number;
+  caloriesPerServing?: number;
+  tags?: string[];
 }
 
 // ─── Recipe Context ───────────────────────────────────────────────────────────
 
 export interface RecipeState {
   results: Recipe[];
+  catalog: Recipe[];
+  categories: string[];
+  selectedCategory: string;
   selectedRecipe: Recipe | null;
   savedRecipes: Recipe[];
   loading: boolean;
+  catalogLoading: boolean;
   error: string | null;
 }
 
 export type RecipeAction =
   | { type: "SEARCH"; results: Recipe[] }
+  | { type: "SET_CATALOG"; catalog: Recipe[]; categories: string[] }
+  | { type: "SET_CATEGORY"; category: string }
   | { type: "SELECT_RECIPE"; recipe: Recipe }
   | { type: "SET_SAVED"; recipes: Recipe[] }
   | { type: "SET_LOADING"; loading: boolean }
+  | { type: "SET_CATALOG_LOADING"; loading: boolean }
   | { type: "SET_ERROR"; error: string | null }
   | { type: "CLEAR_RESULTS" };
 
 export interface RecipeContextValue extends RecipeState {
   search: (query: string) => Promise<void>;
+  loadCatalog: (force?: boolean) => Promise<void>;
+  selectCategory: (category: string) => Promise<void>;
   loadRecipe: (id: string) => Promise<void>;
   saveRecipe: (recipe: Recipe) => Promise<void>;
   removeSavedRecipe: (id: string) => Promise<void>;
@@ -131,12 +155,16 @@ export interface PantryIngredient {
 /** A recipe that is fully cookable with the current pantry. */
 export interface ReadyMatch {
   recipe: Recipe;
+  matchedCount: number;
+  totalCount: number;
 }
 
-/** A recipe that is almost cookable — missing 1–2 ingredients. */
+/** A recipe that is almost cookable — missing 1+ ingredients, sorted by highest match coverage. */
 export interface AlmostMatch {
   recipe: Recipe;
   missing: string[];
+  matchedCount: number;
+  totalCount: number;
 }
 
 export interface MatchResults {

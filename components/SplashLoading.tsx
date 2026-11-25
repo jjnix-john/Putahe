@@ -9,6 +9,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { SystemBackground } from "@/components/SystemBackground";
+
 export function SplashLoading() {
   const progress = useSharedValue(0.08);
   const pulse = useSharedValue(1);
@@ -64,41 +66,33 @@ export function SplashLoading() {
   }));
 
   return (
-    <View style={styles.container}>
-      {/* Top decorative organic blobs in brand palette */}
-      <View style={styles.topBlobDark} />
-      <View style={styles.topBlobOlive} />
+    <SystemBackground>
+      <View style={styles.container}>
+        <Animated.View style={[styles.logoWrapper, logoStyle]}>
+          <Image
+            source={require("../assets/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </Animated.View>
 
-      {/* Bottom decorative organic blobs */}
-      <View style={styles.bottomBlobDark} />
-      <View style={styles.bottomBlobGreen} />
-
-      <Animated.View style={[styles.logoWrapper, logoStyle]}>
-        <Image
-          source={require("../assets/logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </Animated.View>
-
-      {/* Progress Bar Only — no extra text */}
-      <View style={styles.progressSection}>
-        <View style={styles.track}>
-          <Animated.View style={[styles.fill, barStyle]} />
+        {/* Progress Bar Only — no extra text */}
+        <View style={styles.progressSection}>
+          <View style={styles.track}>
+            <Animated.View style={[styles.fill, barStyle]} />
+          </View>
         </View>
       </View>
-    </View>
+    </SystemBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 36,
-    overflow: "hidden",
   },
   topBlobDark: {
     position: "absolute",
