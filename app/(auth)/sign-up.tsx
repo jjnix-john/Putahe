@@ -14,6 +14,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/stores/AuthContext";
+import { toSafeErrorMessage } from "@/lib/security";
 import { SystemBackground } from "@/components/SystemBackground";
 
 export default function SignUpScreen() {
@@ -24,9 +25,17 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  function handleShowPrivacyPolicy() {
+    Alert.alert(
+      "Terms & Privacy Policy",
+      "Putahe practices strict data minimization:\n\n• We collect only your email, display name, cooking companion preference, and community forum posts.\n• Passwords are securely hashed and never logged.\n• AI dish analysis estimates are provided for informational purposes only.\n• You can permanently delete your account and all associated data at any time from Community → My Profile."
+    );
+  }
 
   async function handleSignUp() {
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
@@ -37,8 +46,14 @@ export default function SignUpScreen() {
       setError("Passwords do not match.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setError(
+        "Please accept the Terms of Use & Privacy Policy to create an account."
+      );
       return;
     }
     setError(null);
@@ -47,17 +62,7 @@ export default function SignUpScreen() {
       await signUp(email.trim(), password, name.trim());
       setSuccess(true);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Registration failed.";
-      if (
-        msg.toLowerCase().includes("fetch") ||
-        msg.toLowerCase().includes("network")
-      ) {
-        setError(
-          "Unable to reach Supabase server. Check your internet connection or .env.local credentials."
-        );
-      } else {
-        setError(msg);
-      }
+      setError(toSafeErrorMessage(e, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -229,6 +234,33 @@ export default function SignUpScreen() {
                 color="#7D8570"
               />
             </Pressable>
+          </View>
+
+          {/* Explicit User Consent & Privacy Notice */}
+          <View style={styles.consentRow}>
+            <Pressable
+              onPress={() => setAgreedToTerms((prev) => !prev)}
+              style={[
+                styles.consentCheckbox,
+                agreedToTerms && styles.consentCheckboxChecked,
+              ]}
+              hitSlop={8}
+            >
+              {agreedToTerms && (
+                <Ionicons name="checkmark" size={14} color="#504B3A" />
+              )}
+            </Pressable>
+            <Text style={styles.consentText}>
+              I agree to the{" "}
+              <Text
+                style={styles.consentLink}
+                onPress={handleShowPrivacyPolicy}
+              >
+                Terms of Use & Privacy Policy
+              </Text>{" "}
+              and consent to storing my account and forum activity. I can delete
+              my account and data at any time.
+            </Text>
           </View>
 
           {/* Prominent Pill Create Account Button */}
@@ -449,6 +481,40 @@ const styles = StyleSheet.create({
   eyeButton: {
     paddingLeft: 8,
     paddingVertical: 4,
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 4,
+    marginBottom: 10,
+    paddingHorizontal: 4,
+    gap: 10,
+  },
+  consentCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#7D8570",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  consentCheckboxChecked: {
+    backgroundColor: "#57E165",
+    borderColor: "#46C953",
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: "#646F58",
+    lineHeight: 17,
+  },
+  consentLink: {
+    color: "#504B3A",
+    fontWeight: "800",
+    textDecorationLine: "underline",
   },
   primaryButtonWrapper: {
     width: "100%",

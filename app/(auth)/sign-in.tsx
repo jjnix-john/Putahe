@@ -14,6 +14,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/stores/AuthContext";
+import { toSafeErrorMessage } from "@/lib/security";
 import { SystemBackground } from "@/components/SystemBackground";
 
 export default function SignInScreen() {
@@ -40,17 +41,9 @@ export default function SignInScreen() {
         router.replace("/(tabs)");
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Sign in failed.";
-      if (
-        msg.toLowerCase().includes("fetch") ||
-        msg.toLowerCase().includes("network")
-      ) {
-        setError(
-          "Unable to reach Supabase server. Check your internet connection or .env.local credentials."
-        );
-      } else {
-        setError(msg);
-      }
+      setError(
+        toSafeErrorMessage(e, "Sign in failed. Please check your credentials.")
+      );
     } finally {
       setLoading(false);
     }

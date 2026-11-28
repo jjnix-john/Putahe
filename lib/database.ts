@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type { SQLiteDatabase } from "expo-sqlite";
 import type { CachedRecipeRow, PantryIngredientRow } from "@/types/index";
 
@@ -177,7 +178,10 @@ const memoryDb = {
 
 export async function getDb(): Promise<SQLiteDatabase> {
   if (_db) return _db;
-  if (_nativeUnavailable) return memoryDb;
+  if (_nativeUnavailable || Platform.OS === "web") {
+    _nativeUnavailable = true;
+    return memoryDb;
+  }
 
   try {
     // Lazy-require expo-sqlite so a missing native module does not crash at bundle load time
@@ -185,11 +189,7 @@ export async function getDb(): Promise<SQLiteDatabase> {
     const SQLite = require("expo-sqlite") as typeof import("expo-sqlite");
     _db = await SQLite.openDatabaseAsync("putahe.db");
     return _db;
-  } catch (err) {
-    console.warn(
-      "ExpoSQLite native module unavailable; falling back to in-memory database:",
-      err
-    );
+  } catch {
     _nativeUnavailable = true;
     return memoryDb;
   }

@@ -1,4 +1,4 @@
-import { FlatList, Pressable, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useRecipes } from "@/stores/RecipeContext";
@@ -12,6 +12,23 @@ export default function CookbookScreen() {
 
   function handleSelectRecipe(recipe: Recipe) {
     router.push({ pathname: "/recipe/[id]", params: { id: recipe.id } });
+  }
+
+  function handleConfirmRemove(recipe: Recipe) {
+    Alert.alert(
+      "Remove from Cookbook",
+      `Remove "${recipe.title}" from your saved recipes?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            removeSavedRecipe(recipe.id);
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -74,7 +91,7 @@ export default function CookbookScreen() {
                 recipe={item}
                 onPress={() => handleSelectRecipe(item)}
                 isSaved
-                onToggleSave={() => removeSavedRecipe(item.id)}
+                onToggleSave={() => handleConfirmRemove(item)}
               />
             )}
           />

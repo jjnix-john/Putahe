@@ -10,7 +10,9 @@ import {
   View,
 } from "react-native";
 import { router, Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { createThread } from "@/lib/forum";
+import { toSafeErrorMessage } from "@/lib/security";
 
 export default function NewThreadScreen() {
   const [title, setTitle] = useState("");
@@ -36,7 +38,7 @@ export default function NewThreadScreen() {
         params: { id: post.id },
       });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to create thread.");
+      setError(toSafeErrorMessage(e, "Failed to create thread."));
       setSubmitting(false);
     }
   }
@@ -141,6 +143,20 @@ export default function NewThreadScreen() {
               maxLength={60}
               autoCapitalize="words"
             />
+          </View>
+
+          {/* Community Moderation Notice */}
+          <View className="mb-5 bg-[#F6F8F4] border border-[#DCE4D8] rounded-xl p-3 flex-row items-start gap-x-2">
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={17}
+              color="#646F58"
+            />
+            <Text className="flex-1 text-xs text-olive leading-relaxed">
+              Posts are automatically screened for community safety. Please keep
+              discussions respectful, culinary-focused, and free of sensitive
+              personal data.
+            </Text>
           </View>
 
           {/* Submit */}

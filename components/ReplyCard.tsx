@@ -5,6 +5,7 @@ interface ReplyCardProps {
   reply: ForumReply;
   isOwn: boolean;
   onDelete: () => void;
+  onReport?: () => void;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -18,7 +19,12 @@ function formatRelativeTime(isoString: string): string {
   return `${days}d ago`;
 }
 
-export function ReplyCard({ reply, isOwn, onDelete }: ReplyCardProps) {
+export function ReplyCard({
+  reply,
+  isOwn,
+  onDelete,
+  onReport,
+}: ReplyCardProps) {
   const authorName =
     reply.profiles?.display_name ?? reply.author_id.slice(0, 8);
 
@@ -44,7 +50,7 @@ export function ReplyCard({ reply, isOwn, onDelete }: ReplyCardProps) {
           <Text className="text-olive-light text-xs">
             {formatRelativeTime(reply.created_at)}
           </Text>
-          {isOwn && (
+          {isOwn ? (
             <Pressable
               onPress={onDelete}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -52,7 +58,17 @@ export function ReplyCard({ reply, isOwn, onDelete }: ReplyCardProps) {
             >
               <Text className="text-red-500 text-xs font-semibold">Delete</Text>
             </Pressable>
-          )}
+          ) : onReport ? (
+            <Pressable
+              onPress={onReport}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="active:opacity-60"
+            >
+              <Text className="text-olive-light text-xs font-semibold">
+                Report
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 

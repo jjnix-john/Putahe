@@ -13,6 +13,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { enforceRateLimit, toSafeErrorMessage } from "@/lib/security";
 import { SystemBackground } from "@/components/SystemBackground";
 
 export default function ForgotPasswordScreen() {
@@ -29,24 +30,16 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setLoading(true);
     try {
+      enforceRateLimit("auth_reset_password", 3, 60_000);
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        email.trim()
+        email.trim().toLowerCase()
       );
       if (resetError) throw resetError;
       setSent(true);
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : "Failed to send password reset link.";
-      if (
-        msg.toLowerCase().includes("fetch") ||
-        msg.toLowerCase().includes("network")
-      ) {
-        setError(
-          "Unable to reach Supabase server. Check your internet connection or .env.local credentials."
-        );
-      } else {
-        setError(msg);
-      }
+      setError(
+        toSafeErrorMessage(e, "Failed to send password reset link.")
+      );
     } finally {
       setLoading(false);
     }

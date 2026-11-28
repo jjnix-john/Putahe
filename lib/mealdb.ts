@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/security";
 import type { Ingredient, Recipe } from "@/types/index";
 
 const MEALDB_BASE_URL = "https://www.themealdb.com/api/json/v1/1";
@@ -437,9 +438,9 @@ function normalizeForkifyDetail(
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, {}, 8_500);
   if (!response.ok) {
-    throw new Error(`Recipe API request failed: ${response.status}`);
+    throw new Error("Recipe catalog service temporarily unavailable.");
   }
   return response.json() as Promise<T>;
 }

@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/stores/AuthContext";
 import { COMPANION_OPTIONS, type CompanionMood } from "@/lib/companions";
+import { sanitizeUserText, toSafeErrorMessage } from "@/lib/security";
 import { SystemBackground } from "@/components/SystemBackground";
 
 const PREVIEW_MOODS: { key: CompanionMood; label: string }[] = [
@@ -41,22 +42,21 @@ export default function CompanionSetupScreen() {
     COMPANION_OPTIONS[0];
 
   async function handleComplete() {
-    if (!name.trim()) {
-      setError("Please give your cooking companion a name!");
+    const cleanName = sanitizeUserText(name, 28);
+    if (!cleanName) {
+      setError("Please give your cooking companion a valid name!");
       return;
     }
     setError(null);
     setSaving(true);
     try {
       await saveCompanion({
-        name: name.trim(),
+        name: cleanName,
         iconId: selectedIconId,
       });
       router.replace("/(tabs)");
     } catch (e: unknown) {
-      setError(
-        e instanceof Error ? e.message : "Could not save your companion."
-      );
+      setError(toSafeErrorMessage(e, "Could not save your companion."));
     } finally {
       setSaving(false);
     }

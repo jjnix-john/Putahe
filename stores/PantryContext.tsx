@@ -102,8 +102,8 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
           type: "SET_INGREDIENTS",
           ingredients: rows.map(rowToIngredient),
         });
-      } catch (e) {
-        console.error("Failed to load pantry from SQLite:", e);
+      } catch {
+        // Non-fatal: start with empty pantry list
       }
     })();
   }, []);

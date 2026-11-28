@@ -16,8 +16,8 @@ export default function RootLayout() {
     const minDisplay = new Promise((resolve) => setTimeout(resolve, 1400));
 
     Promise.all([
-      initDatabase().catch((err) => {
-        console.error("Database init failed:", err);
+      initDatabase().catch(() => {
+        // Handled gracefully by in-memory fallback
       }),
       minDisplay,
     ]).then(() => {

@@ -29,6 +29,7 @@ export interface AuthContextValue extends AuthState {
     username?: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   saveCompanion: (companion: CookingCompanion) => Promise<void>;
 }
 
@@ -216,6 +217,10 @@ export interface ForumPost {
   profiles?: ForumProfile | null;
   /** Computed reply count */
   reply_count?: number;
+  /** Computed like count */
+  like_count?: number;
+  /** Whether current user liked this post */
+  liked_by_me?: boolean;
 }
 
 export interface ForumReply {
@@ -226,4 +231,19 @@ export interface ForumReply {
   created_at: string;
   /** Joined from profiles */
   profiles?: ForumProfile | null;
+}
+
+export type ForumNotificationType = "like" | "comment" | "share" | "post";
+
+export interface ForumNotification {
+  id: string;
+  recipient_id: string;
+  actor_id: string;
+  actor_name: string;
+  type: ForumNotificationType;
+  post_id: string;
+  post_title: string;
+  preview?: string;
+  is_read: boolean;
+  created_at: string;
 }

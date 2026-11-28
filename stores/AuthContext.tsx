@@ -6,6 +6,11 @@ import React, {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { getDb } from "@/lib/database";
+import {
+  enforceRateLimit,
+  sanitizeUserText,
+  toSafeErrorMessage,
+} from "@/lib/security";
 import type {
   AuthAction,
   AuthContextValue,
@@ -107,8 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     emailOrUsername: string,
     password: string
   ): Promise<void> {
+    enforceRateLimit("auth_sign_in", 5, 60_000);
     dispatch({ type: "SET_LOADING", loading: true });
-    let email = emailOrUsername.trim();
+    let email = sanitizeUserText(emailOrUsername, 120);
 
     if (!email.includes("@")) {
       const { data: profile } = await supabase
@@ -127,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (error) {
       dispatch({ type: "SET_LOADING", loading: false });
-      throw error;
+      throw new Error(toSafeErrorMessage(error, "Invalid email or password."));
     }
   }
 
@@ -136,10 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     username?: string
   ): Promise<void> {
+    enforceRateLimit("auth_sign_up", 3, 60_000);
     dispatch({ type: "SET_LOADING", loading: true });
-    const displayName = username?.trim() || email.split("@")[0];
+    const cleanEmail = sanitizeUserText(email, 120);
+    const displayName =
+      sanitizeUserText(username ?? "", 40) || cleanEmail.split("@")[0];
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: cleanEmail,
       password,
       options: {
         data: {
@@ -150,12 +159,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (error) {
       dispatch({ type: "SET_LOADING", loading: false });
-      throw error;
+      throw new Error(
+        toSafeErrorMessage(error, "Could not create account. Please try again.")
+      );
     }
-    if (data.user && username?.trim()) {
+    if (data.user && displayName) {
       await supabase
         .from("profiles")
-        .update({ display_name: username.trim() })
+        .update({ display_name: displayName })
         .eq("id", data.user.id);
     }
     dispatch({ type: "SET_LOADING", loading: false });
@@ -166,7 +177,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signOut();
     if (error) {
       dispatch({ type: "SET_LOADING", loading: false });
-      throw error;
+      throw new Error(toSafeErrorMessage(error, "Could not sign out."));
+    }
+  }
+
+  async function deleteAccount(): Promise<void> {
+    enforceRateLimit("auth_delete_account", 2, 60_000);
+    dispatch({ type: "SET_LOADING", loading: true });
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // 1. Attempt server-side SECURITY DEFINER RPC (Migration 003)
+        const { error: rpcErr } = await supabase.rpc("delete_own_account");
+        if (rpcErr) {
+          // Fallback: delete user's rows allowed by RLS if RPC hasn't been migrated yet
+          await supabase.from("forum_posts").delete().eq("author_id", user.id);
+          await supabase
+            .from("forum_replies")
+            .delete()
+            .eq("author_id", user.id);
+        }
+      }
+
+      // 2. Wipe all local SQLite user data (pantry, saved recipes, companion, local likes/notifications)
+      try {
+        const db = await getDb();
+        await db.runAsync("DELETE FROM pantry_ingredients WHERE 1=1");
+        await db.runAsync("DELETE FROM saved_recipes WHERE 1=1");
+        await db.runAsync("DELETE FROM db_meta WHERE key != 'version'");
+      } catch {
+        // ignore
+      }
+
+      // 3. Sign out and clear session token from SecureStore
+      await supabase.auth.signOut();
+      dispatch({ type: "SET_COMPANION", companion: null });
+      dispatch({ type: "SET_SESSION", session: null });
+    } catch (err) {
+      dispatch({ type: "SET_LOADING", loading: false });
+      throw new Error(
+        toSafeErrorMessage(err, "Could not complete account deletion.")
+      );
     }
   }
 
@@ -213,6 +267,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    deleteAccount,
     saveCompanion,
   };
 

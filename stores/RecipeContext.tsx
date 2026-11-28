@@ -147,8 +147,8 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
           "SELECT * FROM saved_recipes ORDER BY cached_at DESC"
         );
         dispatch({ type: "SET_SAVED", recipes: rows.map(rowToRecipe) });
-      } catch (e) {
-        console.error("Failed to load saved recipes:", e);
+      } catch {
+        // Non-fatal: start with empty saved recipes list
       }
     })();
 
