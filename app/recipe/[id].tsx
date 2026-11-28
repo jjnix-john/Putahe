@@ -10,6 +10,7 @@ import {
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useRecipes } from "@/stores/RecipeContext";
+import { CompanionReaction } from "@/components/CompanionReaction";
 import type { Ingredient } from "@/types/index";
 
 export default function RecipeDetailScreen() {
@@ -102,6 +103,33 @@ export default function RecipeDetailScreen() {
         />
 
         <View className="px-4 pt-4 pb-10">
+          {/* Companion reaction banner */}
+          <CompanionReaction
+            mood={
+              saved
+                ? "jumping"
+                : missingIngredients.length > 0
+                  ? "curious"
+                  : "amazed"
+            }
+            size={64}
+            compact
+            title={
+              saved
+                ? "Saved in your Cookbook!"
+                : missingIngredients.length > 0
+                  ? `You're only missing ${missingIngredients.length} ingredient(s)!`
+                  : "Great choice! Let's cook this together!"
+            }
+            subtitle={
+              recipe.prepTimeMinutes || recipe.cookTimeMinutes
+                ? `Prep ${recipe.prepTimeMinutes ?? 15}m • Cook ${
+                    recipe.cookTimeMinutes ?? 25
+                  }m • ${recipe.difficulty ?? "Easy"}`
+                : "Follow the ingredients and step-by-step instructions below."
+            }
+          />
+
           {/* Title + meta */}
           <Text className="text-2xl font-bold text-khaki leading-tight">
             {recipe.title}

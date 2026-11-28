@@ -14,6 +14,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/stores/AuthContext";
+import { SystemBackground } from "@/components/SystemBackground";
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -71,55 +72,45 @@ export default function SignUpScreen() {
 
   if (success) {
     return (
-      <View style={styles.root}>
-        <View pointerEvents="none" style={styles.backgroundLayer}>
-          <View style={styles.topWaveLarge} />
-          <View style={styles.topWaveSmall} />
-          <View style={styles.bottomWaveLarge} />
-          <View style={styles.bottomWaveSmall} />
-        </View>
-
-        <View style={styles.successBox}>
-          <View style={styles.formContainer}>
-            <View style={styles.successIconCircle}>
-              <Ionicons name="checkmark" size={34} color="#504B3A" />
-            </View>
-            <Text style={[styles.title, { textAlign: "center" }]}>
-              Check your email
-            </Text>
-            <Text style={[styles.subtitle, { marginBottom: 22 }]}>
-              We&apos;ve sent a confirmation link to{" "}
-              <Text style={styles.successEmail}>{email}</Text>. Open it to
-              activate your account, then sign in.
-            </Text>
-            <View style={styles.primaryButtonWrapper}>
-              <Pressable
-                style={styles.primaryButton}
-                onPress={() => router.replace("/(auth)/sign-in")}
-              >
-                <Text style={styles.primaryButtonText}>Go to Log in</Text>
-              </Pressable>
+      <SystemBackground>
+        <View style={styles.root}>
+          <View style={styles.successBox}>
+            <View style={styles.formContainer}>
+              <View style={styles.successIconCircle}>
+                <Ionicons name="checkmark" size={34} color="#504B3A" />
+              </View>
+              <Text style={[styles.title, { textAlign: "center" }]}>
+                Account Created!
+              </Text>
+              <Text style={[styles.subtitle, { marginBottom: 22 }]}>
+                We&apos;ve sent a confirmation link to{" "}
+                <Text style={styles.successEmail}>{email}</Text>. Next, let&apos;s
+                set up your personal Cooking Companion!
+              </Text>
+              <View style={styles.primaryButtonWrapper}>
+                <Pressable
+                  style={styles.primaryButton}
+                  onPress={() => router.replace("/(auth)/companion-setup")}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    Choose Cooking Companion
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </View>
-      </View>
+      </SystemBackground>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      {/* Background wave blobs — pointerEvents="none" so they never intercept touches */}
-      <View pointerEvents="none" style={styles.backgroundLayer}>
-        <View style={styles.topWaveLarge} />
-        <View style={styles.topWaveSmall} />
-        <View style={styles.bottomWaveLarge} />
-        <View style={styles.bottomWaveSmall} />
-      </View>
-
-      <ScrollView
+    <SystemBackground>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -295,13 +286,13 @@ export default function SignUpScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SystemBackground>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F4F6F3",
   },
   backgroundLayer: {
     position: "absolute",

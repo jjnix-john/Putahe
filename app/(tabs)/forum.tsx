@@ -13,6 +13,8 @@ import { useAuth } from "@/stores/AuthContext";
 import { getThreads } from "@/lib/forum";
 import { supabase } from "@/lib/supabase";
 import { ThreadCard } from "@/components/ThreadCard";
+import { CompanionReaction } from "@/components/CompanionReaction";
+import { SystemBackground } from "@/components/SystemBackground";
 import type { ForumPost } from "@/types/index";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -126,17 +128,18 @@ export default function ForumScreen() {
         }}
       />
 
-      <View className="flex-1 bg-[#F7F8F5]">
-        {/* New Thread button */}
-        <View className="bg-white px-4 py-3 border-b border-[#E8ECE4]">
-          <Pressable
-            className="bg-malachite rounded-xl py-2.5 flex-row items-center justify-center gap-x-2 active:opacity-80"
-            onPress={() => router.push("/forum/new")}
-          >
-            <Ionicons name="create-outline" size={18} color="#504B3A" />
-            <Text className="text-khaki font-bold text-sm">New Thread</Text>
-          </Pressable>
-        </View>
+      <SystemBackground>
+        <View className="flex-1">
+          {/* New Thread button */}
+          <View className="bg-white/90 px-4 py-3 border-b border-[#E8ECE4]">
+            <Pressable
+              className="bg-malachite rounded-xl py-2.5 flex-row items-center justify-center gap-x-2 active:opacity-80"
+              onPress={() => router.push("/forum/new")}
+            >
+              <Ionicons name="create-outline" size={18} color="#504B3A" />
+              <Text className="text-khaki font-bold text-sm">New Thread</Text>
+            </Pressable>
+          </View>
 
         {loading && (
           <View className="flex-1 items-center justify-center">
@@ -158,15 +161,14 @@ export default function ForumScreen() {
 
         {!loading && !error && threads.length === 0 && (
           <View className="flex-1 items-center justify-center px-6">
-            <View className="w-16 h-16 rounded-full bg-[#EDF5EC] items-center justify-center mb-3">
-              <Ionicons name="people-outline" size={30} color="#646F58" />
+            <View className="bg-white/95 border border-[#E2EAE0] rounded-3xl p-6 items-center w-full">
+              <CompanionReaction
+                mood="curious"
+                size={120}
+                title="No discussions yet"
+                subtitle="Be the first to start a culinary thread in the community!"
+              />
             </View>
-            <Text className="text-khaki font-bold text-base">
-              No discussions yet
-            </Text>
-            <Text className="text-olive-light text-sm text-center mt-1">
-              Be the first to start a culinary thread in the community!
-            </Text>
           </View>
         )}
 
@@ -199,7 +201,8 @@ export default function ForumScreen() {
             )}
           />
         )}
-      </View>
+        </View>
+      </SystemBackground>
     </>
   );
 }

@@ -13,6 +13,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { SystemBackground } from "@/components/SystemBackground";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -52,19 +53,12 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      {/* Background wave blobs — pointerEvents="none" so they never intercept touches */}
-      <View pointerEvents="none" style={styles.backgroundLayer}>
-        <View style={styles.topWaveLarge} />
-        <View style={styles.topWaveSmall} />
-        <View style={styles.bottomWaveLarge} />
-        <View style={styles.bottomWaveSmall} />
-      </View>
-
-      <ScrollView
+    <SystemBackground>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -138,13 +132,13 @@ export default function ForgotPasswordScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SystemBackground>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F4F6F3",
   },
   backgroundLayer: {
     position: "absolute",
